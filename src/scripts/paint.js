@@ -4,7 +4,7 @@ const tileSize = 16;
 const DynCanvas = document.createElement("canvas");
 const DynCtx = DynCanvas.getContext("2d");
 
-let grid = []
+let grid = [];
 
 const animated = {
 	407: {
@@ -26,22 +26,26 @@ let buffers = {
 		context: new OffscreenCanvas(100, 100).getContext("2d"),
 	},
 	behind: [],
-    dynamic: [],
+	dynamic: [],
 	top: [],
 };
 
 function updateBuffers() {
-	grid = []
+	grid = [];
 
-	mimicSize()
+	mimicSize();
 	updateBehindBuffers();
-    updateDynamicBuffers();
+	updateDynamicBuffers();
 	updateTopBuffers();
 }
 
 function paintBackground() {
 	ctx.imageSmoothingEnabled = false;
-	ctx.drawImage(buffers.background.context.canvas, (-camera.x % tileSize) - tileSize, (-camera.y % tileSize) - tileSize);
+	ctx.drawImage(
+		buffers.background.context.canvas,
+		(-camera.x % tileSize) - tileSize,
+		(-camera.y % tileSize) - tileSize
+	);
 }
 
 function updateBGBuffer() {
@@ -113,11 +117,11 @@ function drawSprite(
 
 function drawBackLayers() {
 	drawBehind();
-    drawDynBehind();
+	drawDynBehind();
 }
 
 function drawFrontLayers() {
-    drawDynTop();
+	drawDynTop();
 	drawTop();
 }
 
@@ -127,14 +131,17 @@ function drawBehind() {
 		ctx.drawImage(data.ctx.canvas, -camera.x, -camera.y);
 
 		data.anidraw.forEach((tile) => {
-
 			const tileAnim = animated[tile.tile];
 			const frame = Math.floor(((frames / 30) * tileAnim.speed) % tileAnim.frames);
 
 			const tileImage = assets.tileset.ow[tile.tile + frame];
 
 			ctx.imageSmoothingEnabled = false;
-			ctx.drawImage(tileImage, tile.x * tileSize - camera.x, tile.y * tileSize - camera.y);
+			ctx.drawImage(
+				tileImage,
+				tile.x * tileSize - camera.x,
+				tile.y * tileSize - camera.y
+			);
 		});
 	});
 }
@@ -145,7 +152,6 @@ function drawDynBehind() {
 		DynCtx.drawImage(data.ctx.canvas, 0, 0);
 
 		data.anidraw.forEach((tile) => {
-
 			const tileAnim = animated[tile.tile];
 			const frame = Math.floor(((frames / 30) * tileAnim.speed) % tileAnim.frames);
 
@@ -156,17 +162,17 @@ function drawDynBehind() {
 		});
 	});
 
-    ctx.imageSmoothingEnabled = false;
+	ctx.imageSmoothingEnabled = false;
 	ctx.drawImage(DynCanvas, -camera.x, -camera.y);
 }
 
 function drawDynTop() {
 	const tmpCanvas = document.createElement("canvas");
 	const tmpCtx = tmpCanvas.getContext("2d");
-    const cut = Math.floor(player.y / 16) * 16
+	const cut = Math.floor(player.y / 16) * 16;
 
-    tmpCanvas.width = DynCanvas.width
-    tmpCanvas.height = DynCanvas.height - cut
+	tmpCanvas.width = DynCanvas.width;
+	tmpCanvas.height = DynCanvas.height - cut;
 
 	tmpCtx.imageSmoothingEnabled = false;
 	tmpCtx.drawImage(DynCanvas, 0, -cut);
@@ -187,7 +193,11 @@ function drawTop() {
 			const tileImage = assets.tileset.ow[tile.tile + frame];
 
 			ctx.imageSmoothingEnabled = false;
-			ctx.drawImage(tileImage, tile.x * tileSize - camera.x, tile.y * tileSize - camera.y);
+			ctx.drawImage(
+				tileImage,
+				tile.x * tileSize - camera.x,
+				tile.y * tileSize - camera.y
+			);
 		});
 	});
 }
@@ -216,7 +226,9 @@ function updateBehindBuffers() {
 					});
 				}
 
-				grid[y][x].push(tile)
+				if (tile != null && typeof colls.tiles[tile] != "undefined") {
+					grid[y][x].push(tile);
+				}
 			});
 		});
 
@@ -276,8 +288,8 @@ function updateDynamicBuffers() {
 		canvas.width = currentScene.map.data.dynamic[0][0].length * tileSize;
 		canvas.height = currentScene.map.data.dynamic[0].length * tileSize;
 
-        DynCanvas.width = canvas.width
-        DynCanvas.height = canvas.height
+		DynCanvas.width = canvas.width;
+		DynCanvas.height = canvas.height;
 
 		layer.forEach((row, y) => {
 			row.forEach((tile, x) => {
@@ -291,7 +303,9 @@ function updateDynamicBuffers() {
 					});
 				}
 
-				grid[y][x].push(tile)
+				if (tile != null && typeof colls.tiles[tile] != "undefined") {
+					grid[y][x].push(tile);
+				}
 			});
 		});
 

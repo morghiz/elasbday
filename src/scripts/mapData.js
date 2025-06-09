@@ -5,6 +5,6 @@ const levels = {
 			{ type: "hairstraightener", pos: [128, 64] },
 			{ type: "hairstraightener", pos: [128, 128] },
 		],
-		player: [24, 24],
+		player: [64, 64],
 	},
 };

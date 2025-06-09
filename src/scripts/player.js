@@ -162,27 +162,27 @@ function updateCamera() {
 	}
 }
 
-function isColliding(rects1, rects2, x1, y1, x2, y2) {
-	for (let i = 0; i < rects1.length; i++) {
-		const r1 = rects1[i];
-		const ax1 = x1 + r1[0][0],
-			ay1 = y1 + r1[0][1];
-		const ax2 = ax1 + r1[1][0],
-			ay2 = ay1 + r1[1][1];
+function isColliding(rec1, rec2, x1, y1, x2, y2) {
+	let coll = false;
+	rec1.forEach((r1) => {
+		const r1sx = r1[0][0] + x1;
+		const r1sy = r1[0][1] + y1;
+		const r1ex = r1[1][0] + r1sx;
+		const r1ey = r1[1][1] + r1sy;
 
-		for (let j = 0; j < rects2.length; j++) {
-			const r2 = rects2[j];
-			const bx1 = x2 + r2[0][0],
-				by1 = y2 + r2[0][1];
-			const bx2 = bx1 + r2[1][0],
-				by2 = by1 + r2[1][1];
+		rec2.forEach((r2) => {
+			const r2sx = r2[0][0] + x2;
+			const r2sy = r2[0][1] + y2;
+			const r2ex = r2[1][0] + r2sx;
+			const r2ey = r2[1][1] + r2sy;
 
-			if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1) {
-				return true;
+			if (r1ex > r2sx && r1ey > r2sy && r1sx < r2ex && r1sy < r2ey) {
+				coll = true;
 			}
-		}
-	}
-	return false;
+		});
+	});
+
+	return coll;
 }
 
 function getIndex(x, y) {
@@ -200,10 +200,64 @@ function getMove(mx, my) {
 
 	const playerIndex = getIndex(player.x, player.y);
 
-	const movedIDX = {
-		x: getIndex(player.x + mx, player.y),
-		y: getIndex(player.x, player.y + my),
-	};
+	const movedIDX = getIndex(player.x + mx, player.y + my);
+
+	const offsets = [-1, 0, 1];
+
+	offsets.forEach((ox) => {
+		offsets.forEach((oy) => {
+			const tiles = grid[movedIDX.y + oy][movedIDX.x + ox];
+			let thisCollides = {
+				x: false,
+				y: false,
+			};
+
+			tileIDX = {
+				x: movedIDX.x + ox,
+				y: movedIDX.y + oy,
+			};
+
+			tiles.forEach((tile) => {
+				if (adioscolls.includes(tile)) {
+					thisCollides.x = false;
+					thisCollides.y = false;
+				}
+				if (
+					tile !== null &&
+					isColliding(
+						colls.player,
+						colls.tiles[tile],
+						player.x + mx,
+						player.y,
+						tileIDX.x * tileSize,
+						tileIDX.y * tileSize
+					)
+				) {
+					thisCollides.x = true;
+				}
+				if (
+					tile !== null &&
+					isColliding(
+						colls.player,
+						colls.tiles[tile],
+						player.x,
+						player.y + my,
+						tileIDX.x * tileSize,
+						tileIDX.y * tileSize
+					)
+				) {
+					thisCollides.y = true;
+				}
+			});
+
+			if (thisCollides.x) {
+				collides.x = true;
+			}
+			if (thisCollides.y) {
+				collides.y = true;
+			}
+		});
+	});
 
 	return {
 		x: collides.x ? 0 : mx,
