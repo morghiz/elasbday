@@ -12,7 +12,7 @@ let collsAround = [
 	[[], [], []],
 ];
 
-const adioscolls = [222, 224]
+const adioscolls = [222, 224];
 
 let collsAroundNow = [
 	[false, false, false],
@@ -52,7 +52,7 @@ function updatePlayer() {
 	tomove.x += joy.x * player.baseSpeed * player.speed * delta;
 	tomove.y += joy.y * player.baseSpeed * player.speed * delta;
 
-    const finalMove = getMove(tomove.x, tomove.y)
+	const finalMove = getMove(tomove.x, tomove.y);
 
 	player.x += finalMove.x;
 	player.y += finalMove.y;
@@ -193,25 +193,20 @@ function getIndex(x, y) {
 }
 
 function getMove(mx, my) {
-    let collides = {
-        x: false,
-        y: false,
-    }
-	resetColls();
+	let collides = {
+		x: false,
+		y: false,
+	};
 
-	
-}
+	const playerIndex = getIndex(player.x, player.y);
 
-function resetColls() {
-	collsAround = [
-		[[], [], []],
-		[[], [], []],
-		[[], [], []],
-	];
+	const movedIDX = {
+		x: getIndex(player.x + mx, player.y),
+		y: getIndex(player.x, player.y + my),
+	};
 
-	collsAroundNow = [
-		[false, false, false],
-		[false, false, false],
-		[false, false, false],
-	];
+	return {
+		x: collides.x ? 0 : mx,
+		y: collides.y ? 0 : my,
+	};
 }

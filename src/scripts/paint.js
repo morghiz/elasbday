@@ -4,6 +4,8 @@ const tileSize = 16;
 const DynCanvas = document.createElement("canvas");
 const DynCtx = DynCanvas.getContext("2d");
 
+let grid = []
+
 const animated = {
 	407: {
 		speed: 1.5,
@@ -29,6 +31,9 @@ let buffers = {
 };
 
 function updateBuffers() {
+	grid = []
+
+	mimicSize()
 	updateBehindBuffers();
     updateDynamicBuffers();
 	updateTopBuffers();
@@ -210,6 +215,8 @@ function updateBehindBuffers() {
 						y: y,
 					});
 				}
+
+				grid[y][x].push(tile)
 			});
 		});
 
@@ -283,6 +290,8 @@ function updateDynamicBuffers() {
 						y: y,
 					});
 				}
+
+				grid[y][x].push(tile)
 			});
 		});
 
@@ -293,4 +302,19 @@ function updateDynamicBuffers() {
 
 		buffers.dynamic.push(data);
 	});
+}
+
+function mimicSize() {
+	const w = currentScene.map.data.behind[0][0].length * tileSize;
+	const h = currentScene.map.data.behind[0].length * tileSize;
+
+	while (grid.length < h) {
+		grid.push([]);
+	}
+
+	for (let i = 0; i < h; i++) {
+		while (grid[i].length < w) {
+			grid[i].push([]);
+		}
+	}
 }

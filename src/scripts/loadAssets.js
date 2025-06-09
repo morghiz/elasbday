@@ -1,4 +1,4 @@
-var src = "../src/"
+var src = "./src/"
 
 const toLoad = {
     tileset: {
