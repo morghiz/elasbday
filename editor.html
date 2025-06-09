@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="it">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Tileset Map Editor</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<style>
+			/* Stili personalizzati per migliorare l'aspetto e la reattività */
+			body {
+				font-family: "Inter", sans-serif; /* Utilizza il font Inter */
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				min-height: 100vh; /* Altezza minima per centrare il contenuto verticalmente */
+				background-color: #f0f0f0; /* Sfondo leggero */
+				margin: 0;
+				padding: 20px;
+				box-sizing: border-box;
+			}
+			.container {
+				display: flex;
+				flex-direction: column;
+				gap: 20px; /* Spazio tra gli elementi principali */
+				background-color: #fff; /* Sfondo del contenitore principale */
+				padding: 20px;
+				border-radius: 10px; /* Angoli arrotondati */
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Ombra leggera */
+				max-width: 1200px; /* Larghezza massima del contenitore */
+				width: 100%;
+			}
+			.canvas-container {
+				display: flex;
+				gap: 20px; /* Spazio tra le canvas */
+				flex-wrap: wrap; /* Permette alle canvas di andare a capo su schermi piccoli */
+				justify-content: center;
+			}
+			canvas {
+				border: 1px solid #ccc; /* Bordo sottile per le canvas */
+				background-color: #e0e0e0; /* Sfondo grigio chiaro per le aree vuote */
+				border-radius: 8px; /* Angoli arrotondati per le canvas */
+				display: block; /* Assicura che la canvas si comporti come un blocco */
+				max-width: 100%; /* La canvas non supererà la larghezza del suo contenitore */
+				height: auto; /* Mantiene il rapporto d'aspetto quando la larghezza cambia */
+			}
+			.controls {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 15px; /* Spazio tra i gruppi di controlli */
+				justify-content: center;
+				align-items: center;
+				padding: 10px;
+				border-radius: 8px;
+				background-color: #f9f9f9; /* Sfondo leggero per l'area controlli */
+				box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Ombra interna */
+			}
+			.control-group {
+				display: flex;
+				flex-direction: column;
+				gap: 5px;
+				align-items: flex-start;
+			}
+			.control-group label {
+				font-size: 0.9rem;
+				color: #555;
+				font-weight: 500;
+			}
+			.control-group input[type="number"],
+			.control-group input[type="range"],
+			.control-group select,
+			.control-group textarea {
+				/* Aggiunto stile per textarea */
+				padding: 8px 12px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				font-size: 1rem;
+				width: 100%;
+				box-sizing: border-box;
+			}
+			.control-group button {
+				padding: 10px 15px;
+				border-radius: 8px;
+				font-weight: 600;
+				cursor: pointer;
+				transition: background-color 0.2s, box-shadow 0.2s; /* Transizioni fluide */
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Ombra per i bottoni */
+			}
+			/* Stili per i bottoni primari (azione principale) */
+			.control-group button.primary {
+				background-color: #4f46e5; /* Blu indaco */
+				color: white;
+			}
+			.control-group button.primary:hover {
+				background-color: #4338ca; /* Blu indaco più scuro al hover */
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+			}
+			/* Stili per i bottoni secondari (azioni meno prioritarie) */
+			.control-group button.secondary {
+				background-color: #e0e7ff; /* Blu indaco molto chiaro */
+				color: #4f46e5;
+			}
+			.control-group button.secondary:hover {
+				background-color: #c7d2fe; /* Blu indaco leggermente più scuro al hover */
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+			}
+			.control-group button:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+
+			/* Stile per l'area di visualizzazione JSON */
+			#exportedMapData {
+				background-color: #f0f0f0;
+				border: 1px solid #ddd;
+				border-radius: 8px;
+				padding: 15px;
+				font-family: monospace; /* Font a larghezza fissa per il codice */
+				white-space: pre-wrap; /* Mantiene gli spazi bianchi e va a capo */
+				word-break: break-all; /* Forza il testo a rompere le parole lunghe */
+				max-height: 300px; /* Altezza massima con scroll */
+				overflow-y: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1 class="text-3xl font-bold text-center text-gray-800 mb-4">
+				Tileset Map Editor
+			</h1>
+
+			<div class="canvas-container">
+				<div>
+					<h2 class="text-xl font-semibold text-gray-700 mb-2 text-center">
+						Mappa
+					</h2>
+					<canvas id="mapCanvas"></canvas>
+				</div>
+				<div>
+					<h2 class="text-xl font-semibold text-gray-700 mb-2 text-center">
+						Tileset
+					</h2>
+					<canvas id="tilesetCanvas"></canvas>
+					<div class="mt-2 text-center text-gray-600">
+						Tile Selezionato:
+						<span id="selectedTileDisplay" class="font-bold">Nessuno</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="controls">
+				<div class="control-group">
+					<label for="bgTileInput">Tile di Sfondo (ID):</label>
+					<input type="number" id="bgTileInput" value="24" min="0" />
+				</div>
+
+				<div class="control-group">
+					<label>Dimensioni Mappa:</label>
+					<div class="flex gap-2 items-end">
+						<div class="flex flex-col">
+							<label for="mapWidthInput" class="text-xs"
+								>Larghezza (tile):</label
+							>
+							<input type="number" id="mapWidthInput" value="20" min="1" />
+						</div>
+						<div class="flex flex-col">
+							<label for="mapHeightInput" class="text-xs"
+								>Altezza (tile):</label
+							>
+							<input type="number" id="mapHeightInput" value="20" min="1" />
+						</div>
+						<button id="resizeMapBtn" class="primary h-fit">
+							Ridimensiona
+						</button>
+					</div>
+				</div>
+
+				<div class="control-group">
+					<label>Livello Corrente:</label>
+					<div class="flex gap-2">
+						<button id="selectBehindLayerBtn" class="secondary">Dietro</button>
+						<button id="selectDynamicLayerBtn" class="secondary">
+							Dinamico
+						</button>
+						<button id="selectTopLayerBtn" class="secondary">Sopra</button>
+					</div>
+					<span
+						id="currentLayerDisplay"
+						class="text-sm text-gray-600 font-semibold"
+						>Dietro (Livello 0)</span
+					>
+				</div>
+
+				<div class="control-group">
+					<label>Gestione Livelli:</label>
+					<div class="flex gap-2">
+						<button id="prevLayerBtn" class="secondary">
+							Livello Precedente
+						</button>
+						<button id="nextLayerBtn" class="secondary">
+							Livello Successivo
+						</button>
+					</div>
+					<div class="flex gap-2 mt-2">
+						<button id="addLayerBtn" class="primary">Aggiungi Livello</button>
+						<button id="removeLayerBtn" class="secondary">
+							Rimuovi Livello
+						</button>
+					</div>
+				</div>
+
+				<div class="control-group">
+					<label for="onionSkinningOpacity">Opacità Onion Skinning:</label>
+					<input
+						type="range"
+						id="onionSkinningOpacity"
+						min="0"
+						max="1"
+						step="0.05"
+						value="0.5"
+					/>
+				</div>
+
+				<div class="control-group w-full">
+					<label for="importMapData">Importa Mappa (JSON / Oggetto JS):</label>
+					<textarea
+						id="importMapData"
+						rows="5"
+						placeholder="Incolla qui i dati JSON (es. {&quot;key&quot;: &quot;value&quot;}) o una struttura oggetto JavaScript (es. { key: 'value', })."
+					></textarea>
+					<button id="importMapBtn" class="primary w-full mt-2">
+						Importa Mappa
+					</button>
+					<p id="importWarning" class="text-sm text-red-600 mt-2 font-semibold hidden">
+						ATTENZIONE: L'importazione di strutture JavaScript non JSON può comportare rischi di sicurezza.
+						Importa solo da fonti fidate.
+					</p>
+				</div>
+
+				<div class="control-group w-full">
+					<button id="exportMapBtn" class="primary w-full">
+						Esporta Mappa
+					</button>
+				</div>
+			</div>
+
+			<div class="mt-4">
+				<h2 class="text-xl font-semibold text-gray-700 mb-2 text-center">
+					Dati Mappa Esportati
+				</h2>
+				<pre id="exportedMapData" class="text-sm"></pre>
+			</div>
+		</div>
+
+		<script>
+			// Costanti per la configurazione dell'editor
+			const TILE_SIZE = 16; // Dimensione di ogni tile in pixel (16x16)
+			// ATTENZIONE: Il percorso del tileset deve essere corretto per il tuo ambiente.
+			// Se stai eseguendo l'editor localmente, assicurati che 'src/img/tileset.png' esista
+			// o modifica il percorso con un URL valido.
+			const TILESET_PATH = "/src/img/tileset.png";
+			let MAP_WIDTH_TILES = 20; // Larghezza della mappa in numero di tile (ora variabile)
+			let MAP_HEIGHT_TILES = 20; // Altezza della mappa in numero di tile (ora variabile)
+			const EXPORT_TILE_OFFSET = 0; // L'ID del primo tile nel tileset (indice 0) sarà 20 nell'esportazione
+
+			// Ottenimento dei riferimenti alle canvas e ai loro contesti 2D
+			const mapCanvas = document.getElementById("mapCanvas");
+			const mapCtx = mapCanvas.getContext("2d");
+			const tilesetCanvas = document.getElementById("tilesetCanvas");
+			const tilesetCtx = tilesetCanvas.getContext("2d");
+
+			// Creazione dell'oggetto Image per il tileset
+			const tilesetImg = new Image();
+			let tilesetCols = 0; // Numero di colonne nel tileset, calcolato al caricamento dell'immagine
+
+			// Struttura dati della mappa
+			let mapData = {
+				bgtile: 24, // ID del tile di sfondo predefinito
+				data: {
+					behind: [], // Array di livelli, ciascuno un array 2D di tile (per i livelli "dietro" il giocatore)
+					dynamic: [], // Nuovo array per i livelli "dinamici"
+					top: [], // Array di livelli, ciascuno un array 2D di tile (per i livelli "sopra" il giocatore)
+				},
+			};
+
+			// Stato dell'editor
+			let currentCategory = "behind"; // Categoria di livello attualmente selezionata ('behind', 'dynamic' o 'top')
+			let currentLayerIndex = 0; // Indice del livello attivo all'interno della categoria corrente
+			let currentTileIndex = null; // Indice 0-based del tile selezionato dal tileset (indice visivo)
+			let isDrawing = false; // Flag per indicare se l'utente sta disegnando
+			let isErasing = false; // Flag per indicare se l'utente sta cancellando (con tasto destro)
+
+			// Riferimenti agli elementi UI
+			const bgTileInput = document.getElementById("bgTileInput");
+			const mapWidthInput = document.getElementById("mapWidthInput");
+			const mapHeightInput = document.getElementById("mapHeightInput");
+			const resizeMapBtn = document.getElementById("resizeMapBtn");
+			const selectedTileDisplay = document.getElementById(
+				"selectedTileDisplay"
+			);
+			const currentLayerDisplay = document.getElementById(
+				"currentLayerDisplay"
+			);
+			const selectBehindLayerBtn = document.getElementById(
+				"selectBehindLayerBtn"
+			);
+			const selectDynamicLayerBtn = document.getElementById(
+				"selectDynamicLayerBtn"
+			); // Nuovo pulsante
+			const selectTopLayerBtn = document.getElementById("selectTopLayerBtn");
+			const prevLayerBtn = document.getElementById("prevLayerBtn");
+			const nextLayerBtn = document.getElementById("nextLayerBtn");
+			const addLayerBtn = document.getElementById("addLayerBtn");
+			const removeLayerBtn = document.getElementById("removeLayerBtn");
+			const onionSkinningOpacityInput = document.getElementById(
+				"onionSkinningOpacity"
+			);
+			const importMapDataTextarea = document.getElementById("importMapData");
+			const importMapBtn = document.getElementById("importMapBtn");
+			const exportMapBtn = document.getElementById("exportMapBtn");
+			const exportedMapDataPre = document.getElementById("exportedMapData");
+			const importWarning = document.getElementById("importWarning"); // Riferimento all'avviso
+
+			/**
+			 * Inizializza un nuovo livello vuoto con valori null, basato sulle dimensioni attuali della mappa.
+			 * @returns {Array<Array<number|null>>} Un array 2D che rappresenta un livello vuoto.
+			 */
+			function createEmptyLayer() {
+				const layer = [];
+				for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+					layer.push(Array(MAP_WIDTH_TILES).fill(null));
+				}
+				return layer;
+			}
+
+			/**
+			 * Inizializza o ridimensiona la mappa con i livelli predefiniti (uno per 'behind', 'dynamic' e 'top').
+			 * Preserva i tile esistenti se possibile.
+			 * @param {number} newWidth - La nuova larghezza della mappa in tile.
+			 * @param {number} newHeight - La nuova altezza della mappa in tile.
+			 */
+			function resizeMap(newWidth, newHeight) {
+				const oldMapData = JSON.parse(JSON.stringify(mapData)); // Copia profonda dei dati attuali
+
+				MAP_WIDTH_TILES = newWidth;
+				MAP_HEIGHT_TILES = newHeight;
+
+				mapCanvas.width = MAP_WIDTH_TILES * TILE_SIZE;
+				mapCanvas.height = MAP_HEIGHT_TILES * TILE_SIZE;
+
+				// Aggiorna i livelli esistenti o crea nuovi livelli per tutte le categorie
+				mapData.data.behind = resizeLayers(oldMapData.data.behind);
+				mapData.data.dynamic = resizeLayers(oldMapData.data.dynamic); // Ridimensiona anche i livelli dinamici
+				mapData.data.top = resizeLayers(oldMapData.data.top);
+
+				// Assicura che ci sia almeno un livello in ogni categoria se erano vuote
+				if (mapData.data.behind.length === 0)
+					mapData.data.behind.push(createEmptyLayer());
+				if (mapData.data.dynamic.length === 0)
+					mapData.data.dynamic.push(createEmptyLayer()); // Assicura un livello dinamico
+				if (mapData.data.top.length === 0)
+					mapData.data.top.push(createEmptyLayer());
+
+				// Assicura che l'indice del livello corrente sia valido dopo il ridimensionamento
+				currentLayerIndex = Math.min(
+					currentLayerIndex,
+					mapData.data[currentCategory].length - 1
+				);
+				updateLayerDisplay();
+				drawMap();
+			}
+
+			/**
+			 * Ridimensiona un array di livelli, preservando i dati esistenti.
+			 * @param {Array<Array<Array<number|null>>>} oldLayers - L'array di livelli da ridimensionare.
+			 * @returns {Array<Array<Array<number|null>>>} I livelli ridimensionati.
+			 */
+			function resizeLayers(oldLayers) {
+				const newLayers = [];
+				oldLayers.forEach((oldLayer) => {
+					const newLayer = createEmptyLayer(); // Crea un nuovo livello vuoto con le nuove dimensioni
+					// Copia i dati dal vecchio livello al nuovo, finché le dimensioni lo consentono
+					for (
+						let y = 0;
+						y < Math.min(oldLayer.length, MAP_HEIGHT_TILES);
+						y++
+					) {
+						for (
+							let x = 0;
+							x < Math.min(oldLayer[y].length, MAP_WIDTH_TILES);
+							x++
+						) {
+							newLayer[y][x] = oldLayer[y][x];
+						}
+					}
+					newLayers.push(newLayer);
+				});
+				return newLayers;
+			}
+
+			/**
+			 * Carica l'immagine del tileset e la disegna sulla canvas del tileset.
+			 * Calcola anche il numero di colonne del tileset.
+			 */
+			tilesetImg.onload = () => {
+				tilesetCanvas.width = tilesetImg.width;
+				tilesetCanvas.height = tilesetImg.height;
+				tilesetCtx.drawImage(tilesetImg, 0, 0);
+				tilesetCols = tilesetImg.width / TILE_SIZE;
+				console.log(
+					`Tileset caricato. Larghezza: ${tilesetImg.width}, Altezza: ${tilesetImg.height}, Colonne: ${tilesetCols}`
+				);
+			};
+			tilesetImg.src = TILESET_PATH; // Imposta il percorso dell'immagine del tileset
+
+			/**
+			 * Disegna un singolo tile dal tileset su una canvas specificata.
+			 * @param {CanvasRenderingContext2D} ctx - Il contesto della canvas su cui disegnare.
+			 * @param {number|null} tileVisualIndex - L'indice 0-based del tile nel tileset (indice visivo).
+			 * @param {number} drawX - La coordinata X sulla canvas di destinazione.
+			 * @param {number} drawY - La coordinata Y sulla canvas di destinazione.
+			 * @param {number} [alpha=1] - L'opacità con cui disegnare il tile (da 0 a 1).
+			 */
+			function drawTile(ctx, tileVisualIndex, drawX, drawY, alpha = 1) {
+				// Non disegnare se l'indice del tile è null o non valido
+				if (
+					tileVisualIndex === null ||
+					tileVisualIndex === undefined ||
+					tileVisualIndex < 0
+				) {
+					return;
+				}
+
+				// Calcola le coordinate sorgente del tile all'interno dell'immagine del tileset
+				const sourceX = (tileVisualIndex % tilesetCols) * TILE_SIZE;
+				const sourceY = Math.floor(tileVisualIndex / tilesetCols) * TILE_SIZE;
+
+				ctx.save(); // Salva lo stato corrente del contesto
+				ctx.globalAlpha = alpha; // Imposta l'opacità globale
+				ctx.drawImage(
+					tilesetImg,
+					sourceX,
+					sourceY,
+					TILE_SIZE,
+					TILE_SIZE, // Rettangolo sorgente (da dove prendere l'immagine dal tileset)
+					drawX,
+					drawY,
+					TILE_SIZE,
+					TILE_SIZE // Rettangolo destinazione (dove disegnare sulla canvas)
+				);
+				ctx.restore(); // Ripristina lo stato precedente del contesto
+			}
+
+			/**
+			 * Disegna l'intera mappa, inclusi il tile di sfondo, i livelli "behind", "dynamic" e i livelli "top".
+			 * Applica l'onion skinning ai livelli non attivi.
+			 */
+			function drawMap() {
+				mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height); // Pulisce la canvas della mappa
+
+				// Disegna il tile di sfondo su tutta la mappa
+				const bgTileExportId = parseInt(bgTileInput.value);
+				if (!isNaN(bgTileExportId) && bgTileExportId >= 0) {
+					// Converte l'ID di esportazione del tile di sfondo nell'indice visivo 0-based
+					const visualBgTileIndex = bgTileExportId - EXPORT_TILE_OFFSET;
+					for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+						for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+							drawTile(mapCtx, visualBgTileIndex, x * TILE_SIZE, y * TILE_SIZE);
+						}
+					}
+				}
+
+				// Disegna i livelli della categoria 'behind'
+				mapData.data.behind.forEach((layer, index) => {
+					const isCurrentLayer =
+						currentCategory === "behind" && index === currentLayerIndex;
+					// Applica l'opacità dell'onion skinning ai livelli non attivi
+					const alpha = isCurrentLayer
+						? 1
+						: parseFloat(onionSkinningOpacityInput.value);
+					for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+						for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+							drawTile(
+								mapCtx,
+								layer[y][x],
+								x * TILE_SIZE,
+								y * TILE_SIZE,
+								alpha
+							);
+						}
+					}
+				});
+
+				// Disegna i livelli della categoria 'dynamic'
+				mapData.data.dynamic.forEach((layer, index) => {
+					const isCurrentLayer =
+						currentCategory === "dynamic" && index === currentLayerIndex;
+					// Applica l'opacità dell'onion skinning ai livelli non attivi
+					const alpha = isCurrentLayer
+						? 1
+						: parseFloat(onionSkinningOpacityInput.value);
+					// Possibile miglioramento: usare un colore diverso per l'onion skinning dei livelli dinamici
+					// per distinguerli visivamente nell'editor.
+					for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+						for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+							drawTile(
+								mapCtx,
+								layer[y][x],
+								x * TILE_SIZE,
+								y * TILE_SIZE,
+								alpha
+							);
+						}
+					}
+				});
+
+				// Disegna i livelli della categoria 'top'
+				mapData.data.top.forEach((layer, index) => {
+					const isCurrentLayer =
+						currentCategory === "top" && index === currentLayerIndex;
+					// Applica l'opacità dell'onion skinning ai livelli non attivi
+					const alpha = isCurrentLayer
+						? 1
+						: parseFloat(onionSkinningOpacityInput.value);
+					for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+						for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+							drawTile(
+								mapCtx,
+								layer[y][x],
+								x * TILE_SIZE,
+								y * TILE_SIZE,
+								alpha
+							);
+						}
+					}
+				});
+
+				// Disegna le linee della griglia sulla mappa per chiarezza
+				mapCtx.strokeStyle = "#aaa"; // Colore delle linee della griglia
+				mapCtx.lineWidth = 0.5; // Spessore delle linee
+				for (let x = 0; x <= MAP_WIDTH_TILES; x++) {
+					mapCtx.beginPath();
+					mapCtx.moveTo(x * TILE_SIZE, 0);
+					mapCtx.lineTo(x * TILE_SIZE, mapCanvas.height);
+					mapCtx.stroke();
+				}
+				for (let y = 0; y <= MAP_HEIGHT_TILES; y++) {
+					mapCtx.beginPath();
+					mapCtx.moveTo(0, y * TILE_SIZE);
+					mapCtx.lineTo(mapCanvas.width, y * TILE_SIZE);
+					mapCtx.stroke();
+				}
+			}
+
+			/**
+			 * Gestisce i click del mouse sulla canvas del tileset per selezionare un tile.
+			 * @param {MouseEvent} event - L'evento del mouse.
+			 */
+			tilesetCanvas.addEventListener("click", (event) => {
+				const rect = tilesetCanvas.getBoundingClientRect();
+				const x = event.clientX - rect.left; // Coordinata X relativa alla canvas
+				const y = event.clientY - rect.top; // Coordinata Y relativa alla canvas
+
+				const tileX = Math.floor(x / TILE_SIZE); // Colonna del tile cliccato
+				const tileY = Math.floor(y / TILE_SIZE); // Riga del tile cliccato
+
+				// Calcola l'indice 0-based del tile selezionato nel tileset
+				currentTileIndex = tileY * tilesetCols + tileX;
+				// Aggiorna la visualizzazione del tile selezionato con l'ID di esportazione e l'indice visivo
+				selectedTileDisplay.textContent = `ID: ${
+					currentTileIndex + EXPORT_TILE_OFFSET
+				} (Indice Visivo: ${currentTileIndex})`;
+
+				// Disegna un rettangolo di selezione sulla canvas del tileset
+				tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height); // Pulisce la canvas del tileset
+				tilesetCtx.drawImage(tilesetImg, 0, 0); // Ridisegna l'immagine del tileset
+				tilesetCtx.strokeStyle = "blue"; // Colore del bordo di selezione
+				tilesetCtx.lineWidth = 2; // Spessore del bordo
+				tilesetCtx.strokeRect(
+					tileX * TILE_SIZE,
+					tileY * TILE_SIZE,
+					TILE_SIZE,
+					TILE_SIZE
+				); // Disegna il rettangolo
+			});
+
+			/**
+			 * Restituisce il riferimento al livello attivo corrente (l'array 2D).
+			 * @returns {Array<Array<number|null>>|null} Il livello attivo o null se non valido.
+			 */
+			function getCurrentActiveLayer() {
+				const layers = mapData.data[currentCategory];
+				if (layers && layers[currentLayerIndex]) {
+					return layers[currentLayerIndex];
+				}
+				return null;
+			}
+
+			/**
+			 * Gestisce le interazioni di disegno/cancellazione sulla canvas della mappa.
+			 * @param {MouseEvent} event - L'evento del mouse.
+			 */
+			function handleMapInteraction(event) {
+				if (!isDrawing && !isErasing) return; // Non fare nulla se non si sta disegnando o cancellando
+
+				const rect = mapCanvas.getBoundingClientRect();
+				// Calcola le coordinate del mouse relative alla canvas e le scala alla risoluzione interna
+				const scaleX = mapCanvas.width / rect.width;
+				const scaleY = mapCanvas.height / rect.height;
+				const x = (event.clientX - rect.left) * scaleX;
+				const y = (event.clientY - rect.top) * scaleY;
+
+
+				const tileX = Math.floor(x / TILE_SIZE);
+				const tileY = Math.floor(y / TILE_SIZE);
+
+				// Controlla se le coordinate sono all'interno dei limiti della mappa
+				if (
+					tileX >= 0 &&
+					tileX < MAP_WIDTH_TILES &&
+					tileY >= 0 &&
+					tileY < MAP_HEIGHT_TILES
+				) {
+					const activeLayer = getCurrentActiveLayer();
+					if (activeLayer) {
+						if (isDrawing) {
+							if (currentTileIndex !== null) {
+								activeLayer[tileY][tileX] = currentTileIndex; // Disegna il tile selezionato
+							}
+						} else if (isErasing) {
+							activeLayer[tileY][tileX] = null; // Cancella il tile (imposta a null)
+						}
+						drawMap(); // Ridisegna la mappa per mostrare le modifiche
+					}
+				}
+			}
+
+			// Event listener per il click del mouse sulla canvas della mappa
+			mapCanvas.addEventListener("mousedown", (event) => {
+				if (event.button === 0) {
+					// Click sinistro del mouse per disegnare
+					isDrawing = true;
+					isErasing = false;
+					handleMapInteraction(event);
+				} else if (event.button === 2) {
+					// Click destro del mouse per cancellare
+					isErasing = true;
+					isDrawing = false;
+					handleMapInteraction(event);
+				}
+			});
+
+			// Event listener per il movimento del mouse (per disegnare/cancellare trascinando)
+			mapCanvas.addEventListener("mousemove", handleMapInteraction);
+
+			// Event listener per il rilascio del mouse (termina l'operazione di disegno/cancellazione)
+			mapCanvas.addEventListener("mouseup", () => {
+				isDrawing = false;
+				isErasing = false;
+			});
+
+			// Impedisce l'apertura del menu contestuale del browser al click destro sulla canvas
+			mapCanvas.addEventListener("contextmenu", (event) =>
+				event.preventDefault()
+			);
+
+			/**
+			 * Aggiorna la visualizzazione del livello corrente e lo stato dei bottoni di navigazione.
+			 */
+			function updateLayerDisplay() {
+				let categoryName;
+				switch (currentCategory) {
+					case "behind":
+						categoryName = "Dietro";
+						break;
+					case "dynamic":
+						categoryName = "Dinamico";
+						break;
+					case "top":
+						categoryName = "Sopra";
+						break;
+				}
+				currentLayerDisplay.textContent = `${categoryName} (Livello ${currentLayerIndex})`;
+
+				// Aggiorna gli stili dei bottoni di selezione categoria
+				selectBehindLayerBtn.classList.toggle(
+					"primary",
+					currentCategory === "behind"
+				);
+				selectBehindLayerBtn.classList.toggle(
+					"secondary",
+					currentCategory !== "behind"
+				);
+				selectDynamicLayerBtn.classList.toggle(
+					"primary",
+					currentCategory === "dynamic"
+				);
+				selectDynamicLayerBtn.classList.toggle(
+					"secondary",
+					currentCategory !== "dynamic"
+				);
+				selectTopLayerBtn.classList.toggle(
+					"primary",
+					currentCategory === "top"
+				);
+				selectTopLayerBtn.classList.toggle(
+					"secondary",
+					currentCategory !== "top"
+				);
+
+				// Disabilita i bottoni "Precedente" e "Successivo" se non ci sono più livelli
+				prevLayerBtn.disabled = currentLayerIndex === 0;
+				nextLayerBtn.disabled =
+					currentLayerIndex >= mapData.data[currentCategory].length - 1;
+				// Disabilita il bottone "Rimuovi Livello" se rimane solo un livello
+				removeLayerBtn.disabled = mapData.data[currentCategory].length <= 1;
+			}
+
+			// Event Listeners per i controlli UI
+
+			// Gestisce il cambio del tile di sfondo
+			bgTileInput.addEventListener("change", () => {
+				mapData.bgtile = parseInt(bgTileInput.value);
+				drawMap();
+			});
+
+			// Gestisce il ridimensionamento della mappa
+			resizeMapBtn.addEventListener("click", () => {
+				const newWidth = parseInt(mapWidthInput.value);
+				const newHeight = parseInt(mapHeightInput.value);
+				if (
+					!isNaN(newWidth) &&
+					newWidth > 0 &&
+					!isNaN(newHeight) &&
+					newHeight > 0
+				) {
+					resizeMap(newWidth, newHeight);
+				} else {
+					console.error(
+						"Per favore, inserisci dimensioni valide per la mappa (numeri interi maggiori di 0)."
+					);
+					exportedMapDataPre.textContent =
+						"Errore: Inserisci dimensioni valide per la mappa (numeri interi maggiori di 0).";
+				}
+			});
+
+			// Seleziona la categoria di livelli "Dietro"
+			selectBehindLayerBtn.addEventListener("click", () => {
+				currentCategory = "behind";
+				// Assicura che l'indice del livello corrente sia valido per la nuova categoria
+				currentLayerIndex = Math.min(
+					currentLayerIndex,
+					mapData.data.behind.length - 1
+				);
+				updateLayerDisplay();
+				drawMap();
+			});
+
+			// Seleziona la categoria di livelli "Dinamico"
+			selectDynamicLayerBtn.addEventListener("click", () => {
+				currentCategory = "dynamic";
+				// Assicura che l'indice del livello corrente sia valido per la nuova categoria
+				currentLayerIndex = Math.min(
+					currentLayerIndex,
+					mapData.data.dynamic.length - 1
+				);
+				updateLayerDisplay();
+				drawMap();
+			});
+
+			// Seleziona la categoria di livelli "Sopra"
+			selectTopLayerBtn.addEventListener("click", () => {
+				currentCategory = "top";
+				// Assicura che l'indice del livello corrente sia valido per la nuova categoria
+				currentLayerIndex = Math.min(
+					currentLayerIndex,
+					mapData.data.top.length - 1
+				);
+				updateLayerDisplay();
+				drawMap();
+			});
+
+			// Naviga al livello precedente all'interno della categoria corrente
+			prevLayerBtn.addEventListener("click", () => {
+				if (currentLayerIndex > 0) {
+					currentLayerIndex--;
+					updateLayerDisplay();
+					drawMap();
+				}
+			});
+
+			// Naviga al livello successivo all'interno della categoria corrente
+			nextLayerBtn.addEventListener("click", () => {
+				if (currentLayerIndex < mapData.data[currentCategory].length - 1) {
+					currentLayerIndex++;
+					updateLayerDisplay();
+					drawMap();
+				}
+			});
+
+			// Aggiunge un nuovo livello vuoto alla categoria corrente
+			addLayerBtn.addEventListener("click", () => {
+				mapData.data[currentCategory].push(createEmptyLayer());
+				currentLayerIndex = mapData.data[currentCategory].length - 1; // Seleziona il nuovo livello
+				updateLayerDisplay();
+				drawMap();
+			});
+
+			// Rimuove il livello corrente dalla categoria corrente
+			removeLayerBtn.addEventListener("click", () => {
+				if (mapData.data[currentCategory].length > 1) {
+					// Assicura che rimanga almeno un livello
+					mapData.data[currentCategory].splice(currentLayerIndex, 1); // Rimuove il livello
+					// Se il livello rimosso era l'ultimo, imposta l'indice al nuovo ultimo
+					if (currentLayerIndex >= mapData.data[currentCategory].length) {
+						currentLayerIndex = mapData.data[currentCategory].length - 1;
+					}
+					updateLayerDisplay();
+					drawMap();
+				} else {
+					console.log("Non è possibile rimuovere l'ultimo livello.");
+				}
+			});
+
+			// Gestisce il cambio di opacità per l'onion skinning
+			onionSkinningOpacityInput.addEventListener("input", () => {
+				drawMap(); // Ridisegna la mappa per applicare la nuova opacità
+			});
+
+			/**
+			 * Importa i dati della mappa da una stringa JSON o da una struttura oggetto JavaScript.
+			 */
+			importMapBtn.addEventListener("click", () => {
+				let importedData;
+				const inputText = importMapDataTextarea.value.trim();
+
+				// Nasconde l'avviso di sicurezza precedente
+				importWarning.classList.add('hidden');
+
+				try {
+					// Tentativo 1: Parsing come JSON stretto
+					importedData = JSON.parse(inputText);
+				} catch (jsonError) {
+					try {
+						// Tentativo 2: Parsing come oggetto JavaScript (meno restrittivo ma con rischi)
+						// Aggiungo parentesi per assicurare che sia interpretato come un'espressione oggetto
+						importedData = new Function('return (' + inputText + ')')();
+						importWarning.classList.remove('hidden'); // Mostra l'avviso di sicurezza
+					} catch (jsError) {
+						// Se entrambi i tentativi falliscono
+						exportedMapDataPre.textContent = `Errore durante l'importazione: Il formato non è JSON valido né una struttura oggetto JavaScript valida. Dettagli: ${jsError.message}\n\nAssicurati che le chiavi siano tra virgolette doppie per JSON, o che la struttura sia un oggetto JavaScript valido (es. { key: 'value', }).`;
+						console.error("Errore importazione mappa:", jsError);
+						return; // Esci dalla funzione
+					}
+				}
+
+				// Ora importedData contiene l'oggetto parsato, sia da JSON che da JS Object Literal
+				try {
+					// Validazione della struttura
+					if (
+						importedData.bgtile === undefined ||
+						!importedData.data ||
+						!importedData.data.behind ||
+						!importedData.data.top
+					) {
+						// Se manca 'dynamic', inizializzalo come array vuoto per compatibilità
+						if (!importedData.data.dynamic) importedData.data.dynamic = [];
+						// Se mancano 'behind' o 'top', la struttura non è valida
+						if (!importedData.data.behind || !importedData.data.top) {
+							throw new Error(
+								"Struttura della mappa non valida: mancano i livelli 'behind' o 'top'."
+							);
+						}
+					}
+
+					// Determina le dimensioni della mappa importata
+					let importedWidth = 0;
+					let importedHeight = 0;
+					let hasContent = false;
+
+					// Trova le dimensioni massime tra tutti i livelli importati
+					["behind", "dynamic", "top"].forEach((category) => {
+						const categoryLayers = importedData.data[category];
+						if (Array.isArray(categoryLayers)) { // Assicura che sia un array di livelli
+							categoryLayers.forEach((layer) => {
+								if (Array.isArray(layer) && layer.length > 0) { // Assicura che il livello sia un array
+									importedHeight = Math.max(importedHeight, layer.length);
+									if (Array.isArray(layer[0]) && layer[0].length > 0) { // Assicura che la riga sia un array
+										importedWidth = Math.max(importedWidth, layer[0].length);
+									}
+									// Controlla se il livello ha contenuto non nullo
+									if (layer.some((row) => Array.isArray(row) && row.some((tile) => tile !== null))) {
+										hasContent = true;
+									}
+								}
+							});
+						}
+					});
+
+					// Se la mappa importata è completamente vuota, usa le dimensioni predefinite o 20x20
+					if (!hasContent || importedWidth === 0 || importedHeight === 0) {
+						importedWidth = 20;
+						importedHeight = 20;
+					}
+
+					// Aggiorna gli input delle dimensioni della mappa
+					mapWidthInput.value = importedWidth;
+					mapHeightInput.value = importedHeight;
+					resizeMap(importedWidth, importedHeight); // Ridimensiona la canvas e inizializza i nuovi livelli
+
+					// Carica i dati importati, convertendo gli ID di esportazione in indici visivi
+					mapData.bgtile = importedData.bgtile;
+					mapData.data.behind = importedData.data.behind.map((layer) =>
+						layer.map((row) =>
+							row.map((tileExportId) =>
+								tileExportId !== null ? tileExportId - EXPORT_TILE_OFFSET : null
+							)
+						)
+					);
+					// Carica anche i livelli dinamici
+					mapData.data.dynamic = (importedData.data.dynamic || []).map(
+						(layer) =>
+							layer.map((row) =>
+								row.map((tileExportId) =>
+									tileExportId !== null
+										? tileExportId - EXPORT_TILE_OFFSET
+										: null
+								)
+							)
+					);
+					mapData.data.top = importedData.data.top.map((layer) =>
+						layer.map((row) =>
+							row.map((tileExportId) =>
+								tileExportId !== null ? tileExportId - EXPORT_TILE_OFFSET : null
+							)
+						)
+					);
+
+					// Assicura che i livelli importati abbiano le dimensioni corrette
+					mapData.data.behind = resizeLayers(mapData.data.behind);
+					mapData.data.dynamic = resizeLayers(mapData.data.dynamic); // Ridimensiona anche i livelli dinamici importati
+					mapData.data.top = resizeLayers(mapData.data.top);
+
+					// Assicura che ci sia almeno un livello in ogni categoria
+					if (mapData.data.behind.length === 0)
+						mapData.data.behind.push(createEmptyLayer());
+					if (mapData.data.dynamic.length === 0)
+						mapData.data.dynamic.push(createEmptyLayer());
+					if (mapData.data.top.length === 0)
+						mapData.data.top.push(createEmptyLayer());
+
+					currentCategory = "behind"; // Reset alla categoria predefinita
+					currentLayerIndex = 0; // Reset al primo livello
+					updateLayerDisplay();
+					drawMap();
+					exportedMapDataPre.textContent = "Mappa importata con successo!";
+				} catch (error) {
+					exportedMapDataPre.textContent = `Errore durante l'elaborazione dei dati importati: ${error.message}\n\nAssicurati che la struttura interna della mappa sia corretta (bgtile, data.behind, data.dynamic, data.top).`;
+					console.error("Errore elaborazione dati importati:", error);
+				}
+			});
+
+			/**
+			 * Esporta i dati della mappa nel formato JSON specificato, con dimensioni minime.
+			 * Converte gli indici visivi dei tile negli ID di esportazione.
+			 */
+			exportMapBtn.addEventListener("click", () => {
+				let globalMinX = MAP_WIDTH_TILES;
+				let globalMaxX = -1;
+				let globalMinY = MAP_HEIGHT_TILES;
+				let globalMaxY = -1;
+				let hasAnyTile = false;
+
+				// Funzione helper per trovare i limiti di un singolo livello
+				const findLayerBounds = (layer) => {
+					let layerMinX = MAP_WIDTH_TILES;
+					let layerMaxX = -1;
+					let layerMinY = MAP_HEIGHT_TILES;
+					let layerMaxY = -1;
+					let layerHasTile = false;
+
+					for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+						for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+							if (layer[y][x] !== null) {
+								layerHasTile = true;
+								layerMinX = Math.min(layerMinX, x);
+								layerMaxX = Math.max(layerMaxX, x);
+								layerMinY = Math.min(layerMinY, y);
+								layerMaxY = Math.max(layerMaxY, y);
+							}
+						}
+					}
+					return { layerMinX, layerMaxX, layerMinY, layerMaxY, layerHasTile };
+				};
+
+				// Trova i limiti globali per tutti i livelli
+				["behind", "dynamic", "top"].forEach((category) => {
+					const categoryLayers = mapData.data[category];
+					if (Array.isArray(categoryLayers)) { // Assicura che sia un array di livelli
+						categoryLayers.forEach((layer) => {
+							const {
+								layerMinX,
+								layerMaxX,
+								layerMinY,
+								layerMaxY,
+								layerHasTile,
+							} = findLayerBounds(layer);
+							if (layerHasTile) {
+								hasAnyTile = true;
+								globalMinX = Math.min(globalMinX, layerMinX);
+								globalMaxX = Math.max(globalMaxX, layerMaxX);
+								globalMinY = Math.min(globalMinY, layerMinY);
+								globalMaxY = Math.max(globalMaxY, layerMaxY);
+							}
+						});
+					}
+				});
+
+				let exportedBehindLayers = [];
+				let exportedDynamicLayers = []; // Nuovo array per i livelli dinamici esportati
+				let exportedTopLayers = [];
+
+				if (hasAnyTile) {
+					// Estrai la porzione della mappa definita dai limiti globali per tutti i tipi di livello
+					mapData.data.behind.forEach((layer) => {
+						const croppedLayer = [];
+						for (let y = globalMinY; y <= globalMaxY; y++) {
+							const row = [];
+							for (let x = globalMinX; x <= globalMaxX; x++) {
+								// Converte l'indice visivo in ID di esportazione
+								row.push(
+									layer[y][x] !== null ? layer[y][x] + EXPORT_TILE_OFFSET : null
+								);
+							}
+							croppedLayer.push(row);
+						}
+						exportedBehindLayers.push(croppedLayer);
+					});
+
+					mapData.data.dynamic.forEach((layer) => {
+						// Estrai anche i livelli dinamici
+						const croppedLayer = [];
+						for (let y = globalMinY; y <= globalMaxY; y++) {
+							const row = [];
+							for (let x = globalMinX; x <= globalMaxX; x++) {
+								row.push(
+									layer[y][x] !== null ? layer[y][x] + EXPORT_TILE_OFFSET : null
+								);
+							}
+							croppedLayer.push(row);
+						}
+						exportedDynamicLayers.push(croppedLayer);
+					});
+
+					mapData.data.top.forEach((layer) => {
+						const croppedLayer = [];
+						for (let y = globalMinY; y <= globalMaxY; y++) {
+							const row = [];
+							for (let x = globalMinX; x <= globalMaxX; x++) {
+								// Converte l'indice visivo in ID di esportazione
+								row.push(
+									layer[y][x] !== null ? layer[y][x] + EXPORT_TILE_OFFSET : null
+								);
+							}
+							croppedLayer.push(row);
+						}
+						exportedTopLayers.push(croppedLayer);
+					});
+				} else {
+					// Se non ci sono tile, esporta array vuoti per i livelli
+					exportedBehindLayers = mapData.data.behind.map(() => []);
+					exportedDynamicLayers = mapData.data.dynamic.map(() => []); // Anche per i dinamici
+					exportedTopLayers = mapData.data.top.map(() => []);
+				}
+
+				const exportedData = {
+					bgtile: mapData.bgtile,
+					data: {
+						behind: exportedBehindLayers,
+						dynamic: exportedDynamicLayers, // Includi i livelli dinamici nell'esportazione
+						top: exportedTopLayers,
+					},
+				};
+				// Visualizza i dati JSON esportati in formato compatto (senza indentazione)
+				exportedMapDataPre.textContent = JSON.stringify(exportedData);
+			});
+
+			// Setup iniziale all'avvio dell'applicazione
+			// Imposta le dimensioni iniziali degli input
+			mapWidthInput.value = MAP_WIDTH_TILES;
+			mapHeightInput.value = MAP_HEIGHT_TILES;
+			resizeMap(MAP_WIDTH_TILES, MAP_HEIGHT_TILES); // Inizializza la mappa con le dimensioni predefinite
+
+			// Aggiunge un listener per il ridimensionamento della finestra per ridisegnare la mappa
+			window.addEventListener('resize', () => {
+				drawMap(); // Ridisegna la mappa per assicurare che la visualizzazione sia corretta dopo il ridimensionamento del browser
+				// Ridisegna anche il tileset per assicurare che il bordo di selezione sia aggiornato se la canvas del tileset si ridimensiona
+				tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
+				tilesetCtx.drawImage(tilesetImg, 0, 0);
+				// Se un tile è selezionato, ridisegna il rettangolo di selezione
+				if (currentTileIndex !== null) {
+					const tileX = currentTileIndex % tilesetCols;
+					const tileY = Math.floor(currentTileIndex / tilesetCols);
+					tilesetCtx.strokeStyle = "blue";
+					tilesetCtx.lineWidth = 2;
+					tilesetCtx.strokeRect(
+						tileX * TILE_SIZE,
+						tileY * TILE_SIZE,
+						TILE_SIZE,
+						TILE_SIZE
+					);
+				}
+			});
+		</script>
+	</body>
+</html>

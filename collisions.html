@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="it">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Editor di Collisioni Tileset</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<style>
+			body {
+				font-family: "Inter", sans-serif;
+			}
+			canvas {
+				border: 1px solid #ccc;
+			}
+			.message-box {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				padding: 1rem;
+				border-radius: 0.5rem;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				z-index: 1000;
+				text-align: center;
+				opacity: 0;
+				transition: opacity 0.3s ease-in-out;
+			}
+			.message-box.show {
+				opacity: 1;
+			}
+			.message-box.blue {
+				background-color: #bfdbfe;
+				border: 1px solid #93c5fd;
+				color: #1e40af;
+			}
+			.message-box.green {
+				background-color: #d1fae5;
+				border: 1px solid #6ee7b7;
+				color: #065f46;
+			}
+			.message-box.red {
+				background-color: #fee2e2;
+				border: 1px solid #f87171;
+				color: #b91c1c;
+			}
+			.message-box.yellow {
+				background-color: #fef9c3;
+				border: 1px solid #fde047;
+				color: #a16207;
+			}
+			.message-box.purple {
+				background-color: #e9d5ff;
+				border: 1px solid #c084fc;
+				color: #7e22ce;
+			}
+			.message-box.gray {
+				background-color: #e5e7eb;
+				border: 1px solid #9ca3af;
+				color: #374151;
+			}
+		</style>
+	</head>
+	<body class="bg-gray-100 p-4">
+		<div class="container mx-auto bg-white p-6 rounded-lg shadow-lg">
+			<h1 class="text-3xl font-bold mb-4 text-center text-gray-800">
+				Editor di Collisioni Tileset
+			</h1>
+			<p class="text-gray-600 text-center mb-6">
+				Modifica le collisioni per le tue tile 16x16.
+			</p>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
+					<h2 class="text-xl font-semibold mb-3 text-gray-700">
+						Tileset Completo (Clicca per selezionare)
+					</h2>
+					<canvas
+						id="tilesetCanvas"
+						class="w-full h-auto max-w-full block mx-auto rounded-md bg-white"
+					></canvas>
+					<p class="text-sm text-gray-600 mt-2">
+						Dimensione di ogni tile: 16x16 pixel. Assicurati che l'immagine del
+						tileset sia disponibile al percorso `/src/img/tileset.png`.
+					</p>
+				</div>
+
+				<div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
+					<h2 class="text-xl font-semibold mb-3 text-gray-700">
+						Editor Tile Selezionato
+					</h2>
+					<p class="mb-2 text-gray-700">
+						Tile selezionata (Indice base 0):
+						<span id="selectedTileIndexDisplay" class="font-bold text-blue-600"
+							>-</span
+						>
+					</p>
+					<canvas
+						id="editorCanvas"
+						class="block mx-auto rounded-md bg-white shadow-inner"
+					></canvas>
+					<p class="text-sm text-gray-600 mt-2">
+						Disegna rettangoli di collisione cliccando e trascinando con il
+						tasto sinistro del mouse. Clicca destro su un rettangolo esistente
+						per eliminarlo.
+					</p>
+				</div>
+			</div>
+
+			<div class="mt-6 p-4 border rounded-lg bg-gray-50 shadow-sm">
+				<h2 class="text-xl font-semibold mb-3 text-gray-700">Controlli</h2>
+				<div class="flex flex-wrap gap-4 mb-6">
+					<button
+						id="saveButton"
+						class="flex-1 min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+					>
+						Salva Collisioni (LocalStorage)
+					</button>
+					<button
+						id="loadButton"
+						class="flex-1 min-w-[150px] bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+					>
+						Carica Collisioni (LocalStorage)
+					</button>
+					<button
+						id="exportButton"
+						class="flex-1 min-w-[150px] bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+					>
+						Esporta Collisioni (JSON)
+					</button>
+				</div>
+
+				<div class="mb-6">
+					<label
+						for="importInput"
+						class="block text-gray-700 text-sm font-bold mb-2"
+						>Importa Collisioni (JSON):</label
+					>
+					<textarea
+						id="importInput"
+						rows="5"
+						class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-y"
+						placeholder="Incolla qui il JSON delle collisioni esportato..."
+					></textarea>
+					<button
+						id="importButton"
+						class="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+					>
+						Importa
+					</button>
+				</div>
+
+				<div>
+					<label
+						for="exportOutput"
+						class="block text-gray-700 text-sm font-bold mb-2"
+						>Output JSON Esportato (con offset +20):</label
+					>
+					<textarea
+						id="exportOutput"
+						rows="10"
+						class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y"
+						readonly
+					></textarea>
+					<button
+						id="copyToClipboard"
+						class="mt-3 bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+					>
+						Copia negli Appunti
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			window.addEventListener("pageshow", function (event) {
+				if (event.persisted) {
+					console.log(
+						"Pagina ripristinata dalla cache, ricarico per dati freschi."
+					);
+					location.reload(true);
+				} else {
+					console.log("Pagina caricata normalmente o non dalla cache.");
+				}
+			});
+			const TILE_SIZE = 16;
+			const COLLISION_OFFSET = 0;
+
+			let tilesetImage = new Image();
+			let tilesetCanvas = document.getElementById("tilesetCanvas");
+			let tilesetCtx = tilesetCanvas.getContext("2d");
+
+			let editorCanvas = document.getElementById("editorCanvas");
+			let editorCtx = editorCanvas.getContext("2d");
+			editorCanvas.width = TILE_SIZE * 10;
+			editorCanvas.height = TILE_SIZE * 10;
+
+			tilesetCtx.imageSmoothingEnabled = false;
+			tilesetCtx.mozImageSmoothingEnabled = false;
+			tilesetCtx.webkitImageSmoothingEnabled = false;
+			tilesetCtx.msImageSmoothingEnabled = false;
+
+			editorCtx.imageSmoothingEnabled = false;
+			editorCtx.mozImageSmoothingEnabled = false;
+			editorCtx.webkitImageSmoothingEnabled = false;
+			editorCtx.msImageSmoothingEnabled = false;
+
+			let selectedTileIndex = -1;
+			let collisionData = {};
+
+			let isDrawing = false;
+			let startX, startY;
+			let currentRect = null;
+
+			const selectedTileIndexDisplay = document.getElementById(
+				"selectedTileIndexDisplay"
+			);
+			const importInput = document.getElementById("importInput");
+			const exportOutput = document.getElementById("exportOutput");
+			const saveButton = document.getElementById("saveButton");
+			const loadButton = document.getElementById("loadButton");
+			const exportButton = document.getElementById("exportButton");
+			const importButton = document.getElementById("importButton");
+			const copyToClipboardButton = document.getElementById("copyToClipboard");
+
+			/**
+			 * Mostra un messaggio di notifica all'utente.
+			 * @param {string} message - Il testo del messaggio.
+			 * @param {string} type - Il tipo di messaggio (es. 'blue', 'green', 'red', 'yellow', 'purple', 'gray').
+			 * @param {number} duration - Durata del messaggio in millisecondi.
+			 */
+			function showMessage(message, type = "blue", duration = 2000) {
+				const messageBox = document.createElement("div");
+				messageBox.className = `message-box ${type}`;
+				messageBox.innerHTML = message;
+				document.body.appendChild(messageBox);
+
+				messageBox.offsetHeight;
+				messageBox.classList.add("show");
+
+				setTimeout(() => {
+					messageBox.classList.remove("show");
+					messageBox.addEventListener(
+						"transitionend",
+						() => messageBox.remove(),
+						{ once: true }
+					);
+				}, duration);
+			}
+
+			/**
+			 * Inizializza l'editor caricando l'immagine del tileset e configurando i listener.
+			 */
+			function init() {
+				tilesetImage.onload = () => {
+					tilesetCanvas.width = tilesetImage.width;
+					tilesetCanvas.height = tilesetImage.height;
+					drawTileset();
+					loadCollisionsFromLocalStorage();
+				};
+				tilesetImage.onerror = () => {
+					console.error(
+						"Errore nel caricamento dell'immagine del tileset. Assicurati che '/src/img/tileset.png' esista."
+					);
+					showMessage(
+						"<strong>Errore:</strong> Impossibile caricare il tileset. Assicurati che il percorso `/src/img/tileset.png` sia corretto.",
+						"red",
+						5000
+					);
+				};
+				tilesetImage.src = "/src/img/tileset.png";
+			}
+
+			/**
+			 * Disegna l'intero tileset sul canvas principale.
+			 * Include una griglia e l'evidenziazione della tile selezionata.
+			 */
+			function drawTileset() {
+				tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
+				tilesetCtx.drawImage(tilesetImage, 0, 0);
+
+				tilesetCtx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+				tilesetCtx.lineWidth = 1;
+				for (let x = 0; x < tilesetCanvas.width; x += TILE_SIZE) {
+					tilesetCtx.beginPath();
+					tilesetCtx.moveTo(x, 0);
+					tilesetCtx.lineTo(x, tilesetCanvas.height);
+					tilesetCtx.stroke();
+				}
+				for (let y = 0; y < tilesetCanvas.height; y += TILE_SIZE) {
+					tilesetCtx.beginPath();
+					tilesetCtx.moveTo(0, y);
+					tilesetCtx.lineTo(tilesetCanvas.width, y);
+					tilesetCtx.stroke();
+				}
+
+				if (selectedTileIndex !== -1) {
+					const tilesPerRow = tilesetCanvas.width / TILE_SIZE;
+					const tileX = (selectedTileIndex % tilesPerRow) * TILE_SIZE;
+					const tileY = Math.floor(selectedTileIndex / tilesPerRow) * TILE_SIZE;
+
+					tilesetCtx.strokeStyle = "blue";
+					tilesetCtx.lineWidth = 2;
+					tilesetCtx.strokeRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+				}
+			}
+
+			/**
+			 * Disegna la tile selezionata e i suoi rettangoli di collisione sul canvas dell'editor.
+			 * La tile viene ingrandita per facilitare la modifica.
+			 */
+			function drawEditor() {
+				editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+
+				if (selectedTileIndex === -1) {
+					selectedTileIndexDisplay.textContent = "-";
+					return;
+				}
+
+				selectedTileIndexDisplay.textContent = selectedTileIndex;
+
+				const tilesPerRow = tilesetImage.width / TILE_SIZE;
+				const tileSrcX = (selectedTileIndex % tilesPerRow) * TILE_SIZE;
+				const tileSrcY =
+					Math.floor(selectedTileIndex / tilesPerRow) * TILE_SIZE;
+
+				editorCtx.drawImage(
+					tilesetImage,
+					tileSrcX,
+					tileSrcY,
+					TILE_SIZE,
+					TILE_SIZE,
+					0,
+					0,
+					editorCanvas.width,
+					editorCanvas.height
+				);
+
+				editorCtx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+				editorCtx.lineWidth = 0.5;
+				for (let i = 0; i <= TILE_SIZE; i++) {
+					editorCtx.beginPath();
+					editorCtx.moveTo(i * (editorCanvas.width / TILE_SIZE), 0);
+					editorCtx.lineTo(
+						i * (editorCanvas.width / TILE_SIZE),
+						editorCanvas.height
+					);
+					editorCtx.stroke();
+
+					editorCtx.beginPath();
+					editorCtx.moveTo(0, i * (editorCanvas.height / TILE_SIZE));
+					editorCtx.lineTo(
+						editorCanvas.width,
+						i * (editorCanvas.height / TILE_SIZE)
+					);
+					editorCtx.stroke();
+				}
+
+				if (collisionData[selectedTileIndex]) {
+					collisionData[selectedTileIndex].forEach((rect) => {
+						const [pos, size] = rect;
+						const [x, y] = pos;
+						const [w, h] = size;
+
+						const scale = editorCanvas.width / TILE_SIZE;
+						editorCtx.strokeStyle = "red";
+						editorCtx.lineWidth = 1;
+						editorCtx.strokeRect(x * scale, y * scale, w * scale, h * scale);
+
+						editorCtx.fillStyle = "rgba(255, 0, 0, 0.3)";
+						editorCtx.fillRect(x * scale, y * scale, w * scale, h * scale);
+					});
+				}
+
+				if (isDrawing && currentRect) {
+					const [pos, size] = currentRect;
+					const [x, y] = pos;
+					const [w, h] = size;
+
+					const scale = editorCanvas.width / TILE_SIZE;
+					editorCtx.strokeStyle = "blue";
+					editorCtx.lineWidth = 1;
+					editorCtx.strokeRect(x * scale, y * scale, w * scale, h * scale);
+
+					editorCtx.fillStyle = "rgba(0, 0, 255, 0.3)";
+					editorCtx.fillRect(x * scale, y * scale, w * scale, h * scale);
+				}
+			}
+
+			/**
+			 * Gestisce il click sul canvas del tileset per selezionare una tile.
+			 * @param {MouseEvent} event - L'evento click del mouse.
+			 */
+			tilesetCanvas.addEventListener("click", (event) => {
+				const rect = tilesetCanvas.getBoundingClientRect();
+				const scaleX = tilesetCanvas.width / rect.width;
+				const scaleY = tilesetCanvas.height / rect.height;
+
+				const x = (event.clientX - rect.left) * scaleX;
+				const y = (event.clientY - rect.top) * scaleY;
+
+				const tileX = Math.floor(x / TILE_SIZE);
+				const tileY = Math.floor(y / TILE_SIZE);
+
+				const tilesPerRow = tilesetImage.width / TILE_SIZE;
+				selectedTileIndex = tileY * tilesPerRow + tileX;
+
+				drawTileset();
+				drawEditor();
+			});
+
+			/**
+			 * Ottiene le coordinate del mouse relative al canvas dell'editor, scalate alla dimensione della tile originale (16x16).
+			 * Questo è utile per mappare i pixel del canvas ingrandito alle coordinate della tile originale.
+			 * @param {MouseEvent} event - L'evento mouse.
+			 * @returns {{x: number, y: number}} Coordinate scalate (0-15).
+			 */
+			function getScaledMouseCoords(event) {
+				const rect = editorCanvas.getBoundingClientRect();
+				const clientX = event.clientX - rect.left;
+				const clientY = event.clientY - rect.top;
+
+				const scaledX = Math.floor(clientX / (editorCanvas.width / TILE_SIZE));
+				const scaledY = Math.floor(clientY / (editorCanvas.height / TILE_SIZE));
+				return { x: scaledX, y: scaledY };
+			}
+
+			/**
+			 * Inizia a disegnare un rettangolo di collisione sul canvas dell'editor.
+			 * @param {MouseEvent} event - L'evento mousedown del mouse.
+			 */
+			editorCanvas.addEventListener("mousedown", (event) => {
+				if (selectedTileIndex === -1) {
+					showMessage(
+						"<strong>Attenzione:</strong> Seleziona prima una tile dal tileset per iniziare a disegnare.",
+						"yellow",
+						3000
+					);
+					return;
+				}
+
+				if (event.button === 0) {
+					isDrawing = true;
+					const coords = getScaledMouseCoords(event);
+					startX = coords.x;
+					startY = coords.y;
+					currentRect = [
+						[startX, startY],
+						[1, 1],
+					];
+				}
+			});
+
+			/**
+			 * Aggiorna il rettangolo di collisione mentre si trascina il mouse.
+			 * @param {MouseEvent} event - L'evento mousemove del mouse.
+			 */
+			editorCanvas.addEventListener("mousemove", (event) => {
+				if (!isDrawing || selectedTileIndex === -1) return;
+
+				const coords = getScaledMouseCoords(event);
+				const currentX = coords.x;
+				const currentY = coords.y;
+
+				const x = Math.min(startX, currentX);
+				const y = Math.min(startY, currentY);
+				const w = Math.abs(startX - currentX) + 1;
+				const h = Math.abs(startY - currentY) + 1;
+
+				currentRect = [
+					[x, y],
+					[w, h],
+				];
+				drawEditor();
+			});
+
+			/**
+			 * Termina il disegno del rettangolo e lo aggiunge ai dati di collisione.
+			 * @param {MouseEvent} event - L'evento mouseup del mouse.
+			 */
+			editorCanvas.addEventListener("mouseup", (event) => {
+				if (!isDrawing || selectedTileIndex === -1) return;
+
+				if (event.button === 0) {
+					isDrawing = false;
+					if (currentRect) {
+						const [pos, size] = currentRect;
+						const [x, y] = pos;
+						const [w, h] = size;
+
+						if (w > 0 && h > 0) {
+							if (!collisionData[selectedTileIndex]) {
+								collisionData[selectedTileIndex] = [];
+							}
+							collisionData[selectedTileIndex].push([
+								[x, y],
+								[w, h],
+							]);
+						}
+						currentRect = null;
+						drawEditor();
+						saveCollisions(false);
+					}
+				}
+			});
+
+			/**
+			 * Gestisce il click destro per eliminare un rettangolo di collisione esistente.
+			 * @param {MouseEvent} event - L'evento contextmenu del mouse.
+			 */
+			editorCanvas.addEventListener("contextmenu", (event) => {
+				event.preventDefault();
+
+				if (selectedTileIndex === -1 || !collisionData[selectedTileIndex])
+					return;
+
+				const coords = getScaledMouseCoords(event);
+				const clickX = coords.x;
+				const clickY = coords.y;
+
+				let removed = false;
+				collisionData[selectedTileIndex] = collisionData[
+					selectedTileIndex
+				].filter((rect) => {
+					const [pos, size] = rect;
+					const [x, y] = pos;
+					const [w, h] = size;
+
+					const isInside =
+						clickX >= x && clickX < x + w && clickY >= y && clickY < y + h;
+
+					if (isInside && !removed) {
+						removed = true;
+						return false;
+					}
+					return true;
+				});
+
+				if (collisionData[selectedTileIndex].length === 0) {
+					delete collisionData[selectedTileIndex];
+				}
+
+				drawEditor();
+				saveCollisions(false);
+			});
+
+			/**
+			 * Salva i dati di collisione nell'oggetto `localStorage` del browser.
+			 * @param {boolean} showNotification - Se true, mostra un messaggio di notifica.
+			 */
+			function saveCollisions(showNotification = true) {
+				try {
+					localStorage.setItem(
+						"collisionEditorData",
+						JSON.stringify(collisionData)
+					);
+					console.log("Collisioni salvate nel localStorage.");
+					if (showNotification) {
+						showMessage("Collisioni salvate con successo!", "blue");
+					}
+				} catch (e) {
+					console.error(
+						"Errore nel salvataggio delle collisioni nel localStorage:",
+						e
+					);
+					if (showNotification) {
+						showMessage(
+							"<strong>Errore:</strong> Impossibile salvare le collisioni.",
+							"red",
+							5000
+						);
+					}
+				}
+			}
+
+			saveButton.addEventListener("click", () => saveCollisions(true));
+
+			/**
+			 * Carica i dati di collisione dall'oggetto `localStorage` del browser.
+			 */
+			loadButton.addEventListener("click", loadCollisionsFromLocalStorage);
+
+			function loadCollisionsFromLocalStorage() {
+				try {
+					const storedData = localStorage.getItem("collisionEditorData");
+					if (storedData) {
+						collisionData = JSON.parse(storedData);
+						console.log("Collisioni caricate dal localStorage.", collisionData);
+						drawEditor();
+						showMessage("Collisioni caricate con successo!", "green");
+					} else {
+						console.log("Nessun dato di collisione trovato nel localStorage.");
+						showMessage(
+							"Nessun dato di collisione trovato nel localStorage.",
+							"yellow",
+							3000
+						);
+					}
+				} catch (e) {
+					console.error(
+						"Errore nel caricamento delle collisioni dal localStorage:",
+						e
+					);
+					showMessage(
+						"<strong>Errore:</strong> Impossibile caricare le collisioni.",
+						"red",
+						5000
+					);
+				}
+			}
+
+			/**
+			 * Esporta i dati di collisione nel formato JSON, aggiungendo l'offset all'indice della tile.
+			 * L'output viene visualizzato in una textarea.
+			 */
+			exportButton.addEventListener("click", () => {
+				const exportedData = {};
+				for (const index in collisionData) {
+					if (collisionData.hasOwnProperty(index)) {
+						exportedData[parseInt(index) + COLLISION_OFFSET] =
+							collisionData[index];
+					}
+				}
+				exportOutput.value = JSON.stringify(exportedData);
+				console.log("Collisioni esportate:", exportedData);
+				showMessage(
+					"Collisioni esportate nel campo di testo sottostante.",
+					"purple"
+				);
+			});
+
+			/**
+			 * Importa i dati di collisione da una stringa JSON, sottraendo l'offset dall'indice della tile.
+			 * Aggiorna i dati di collisione dell'editor.
+			 */
+			importButton.addEventListener("click", () => {
+				try {
+					const importedJson = importInput.value;
+					const parsedData = JSON.parse(importedJson);
+					const newCollisionData = {};
+
+					for (const indexStr in parsedData) {
+						if (parsedData.hasOwnProperty(indexStr)) {
+							const originalIndex = parseInt(indexStr) - COLLISION_OFFSET;
+							if (originalIndex >= 0) {
+								newCollisionData[originalIndex] = parsedData[indexStr];
+							} else {
+								console.warn(
+									`Indice importato '${indexStr}' risulta negativo dopo l'offset (${originalIndex}). Saltato.`
+								);
+								showMessage(
+									`<strong>Attenzione:</strong> Indice importato '${indexStr}' risulta negativo dopo l'offset.`,
+									"yellow",
+									4000
+								);
+							}
+						}
+					}
+					collisionData = newCollisionData;
+					drawEditor();
+					console.log("Collisioni importate:", collisionData);
+					showMessage("Collisioni importate con successo!", "yellow");
+					saveCollisions(false);
+				} catch (e) {
+					console.error("Errore nell'importazione delle collisioni:", e);
+					showMessage(
+						"<strong>Errore:</strong> Formato JSON non valido per l'importazione.",
+						"red",
+						5000
+					);
+				}
+			});
+
+			/**
+			 * Copia il contenuto della textarea di esportazione negli appunti del sistema.
+			 */
+			copyToClipboardButton.addEventListener("click", () => {
+				exportOutput.select();
+				try {
+					document.execCommand("copy");
+					showMessage("Copiato negli appunti!", "gray", 1500);
+				} catch (err) {
+					console.error("Impossibile copiare negli appunti:", err);
+					showMessage(
+						"<strong>Errore:</strong> Impossibile copiare negli appunti.",
+						"red",
+						5000
+					);
+				}
+			});
+
+			window.onload = init;
+
+			window.addEventListener("resize", () => {
+				if (tilesetImage.complete) {
+					drawTileset();
+				}
+			});
+		</script>
+	</body>
+</html>

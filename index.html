@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>ELABD</title>
+
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/src/style.css" />
+
+		<script src="/src/scripts/loadAssets.js"></script>
+        <script src="/src/scripts/paint.js"></script>
+        <script src="/src/scripts/mapData.js"></script>
+        <script src="/src/scripts/player.js"></script>
+        <script src="/src/scripts/collData.js"></script>
+	</head>
+	<body>
+		<div id="info">
+			<p id="infotext">LOADING</p>
+			<div id="loader"></div>
+		</div>
+		<canvas id="mainCanvas"></canvas>
+
+		<div id="joystick-container" class="notouch">
+			<div id="joystick-base"></div>
+			<div id="joystick-stick"></div>
+		</div>
+
+		<div id="run-button" class="notouch"></div>
+
+        <script src="/src/scripts/joystick.js"></script>
+		<script src="/src/scripts/main.js"></script>
+	</body>
+</html>
