@@ -1,0 +1,110 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    background-color: black;
+}
+
+#mainCanvas {
+    display: block;
+    width: 100svw;
+    height: 100svh;
+    image-rendering: pixelated;
+}
+
+#info {
+	width: 90svw;
+    display: block;
+    position: absolute;
+    left: 50svw;
+    top: 50svh;
+
+    transform: translate(-50%, -50%);
+}
+
+#infotext {
+    color: white;
+    font-family: "Jersey 10", Helvetica, Arial, sans-serif;
+	font-size: 5svh;
+	text-align: center;
+    display: block;
+
+    margin: 1svh;
+}
+
+#loader {
+	border-radius: 100%;
+	border: 1.5svh solid white;
+	border-top-color: transparent;
+	height: 5svh;
+	width: 5svh;
+	margin: 0 auto;
+	animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+#joystick-container {
+	display: none;
+	position: absolute;
+	height: 50svh;
+	width: auto;
+	max-height: calc(50svw - 10svh) !important;
+	aspect-ratio: 1/1;
+	bottom: 5svh;
+	left: 5svh;
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 50%;
+	touch-action: none;
+}
+
+#joystick-base {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.2);
+	box-sizing: border-box;
+}
+
+#joystick-stick {
+	position: absolute;
+	height: 40%;
+	width: 40%;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.4);
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	transition: background 0.2s;
+	touch-action: none;
+}
+
+#run-button {
+	display: none;
+	position: absolute;
+	height: 20svh;
+	width: auto;
+	max-height: calc(30svw - 10svh) !important;
+	aspect-ratio: 1/1;
+	bottom: 10svh;
+	right: 10svh;
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 50%;
+	touch-action: none;
+}
+
+#run-button.notouch {
+	display: none !important;
+}
+
+#joystick-container.notouch {
+	display: none !important;
+}
